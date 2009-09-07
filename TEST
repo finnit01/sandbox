@@ -1,1 +1,82 @@
-test edit using browser
+import lejos.nxt.*;
+import lejos.navigation.*;
+
+public class BasicRobot {
+
+  static final Motor leftMotorPort = Motor.C;
+  static final Motor rightMotorPort = Motor.A;
+  static final Motor clawPort = Motor.B;
+  static final SensorPort touchSensorPort = SensorPort.S1;
+  static final SensorPort soundSensorPort = SensorPort.S2;
+  static final SensorPort lightSensorPort = SensorPort.S3;
+  static final SensorPort ultrasonicSensorPort = SensorPort.S4;
+  static final int wheelDiameter = 56;
+  static final int trackWidth = 110;
+
+  TachoPilot pilot;
+  TouchSensor touch;
+  SoundSensor sound;
+  LightSensor light;
+  UltrasonicSensor sonic;
+
+  public static void main(String[] args) {
+    BasicRobot basicRobot = new BasicRobot();
+    basicRobot.pilot = new TachoPilot(wheelDiameter, trackWidth, leftMotorPort, rightMotorPort);
+    basicRobot.touch = new TouchSensor(touchSensorPort);
+    basicRobot.sound = new SoundSensor(soundSensorPort, true);
+    basicRobot.light = new LightSensor(lightSensorPort);
+    basicRobot.sonic = new UltrasonicSensor(ultrasonicSensorPort);
+
+    // wait for a clap or other loud sound to start
+    while (basicRobot.sound.readValue() < 60) {
+      LCD.drawInt(basicRobot.sound.readValue(), 0, 0);
+    }
+
+    basicRobot.openClaw();
+
+    // drive forward until touch sensor is pressed
+    while (!basicRobot.touch.isPressed()) {
+      basicRobot.pilot.forward();
+    }
+    basicRobot.pilot.stop();
+
+    // pick up the ball
+    basicRobot.closeClaw();
+    // reverse a bit
+    basicRobot.pilot.travel(-50);
+    // turn around
+    basicRobot.pilot.rotate(180);
+
+    // drive forward until about to bump into something
+    while (basicRobot.sonic.getDistance() > 10) {
+//      LCD.clearDisplay();
+      LCD.drawInt(basicRobot.sonic.getDistance(), 0, 0);
+      basicRobot.pilot.forward();
+    }
+    basicRobot.pilot.stop();
+
+    // drop ball
+    basicRobot.openClaw();
+    basicRobot.closeClaw();
+
+  }
+
+  public void openClaw() {
+    clawPort.setSpeed(360);
+    clawPort.forward();
+    try {
+      Thread.sleep(500);
+    } catch (InterruptedException e) {}
+    clawPort.flt();
+  }
+
+  public void closeClaw() {
+    clawPort.setSpeed(720);
+    clawPort.backward();
+    try {
+      Thread.sleep(500);
+    } catch (InterruptedException e) {}
+    clawPort.lock(100);
+  }
+
+}
